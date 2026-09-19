@@ -1,1 +1,405 @@
-<PLACEHOLDER_WATCH>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Lesson</title>
+  <style>
+    :root {
+      --bg: #000;
+      --card: #111;
+      --accent: #3b82f6;
+      --text: #fff;
+      --muted: #888;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: #000;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1% 2%;
+      text-align: center;
+    }
+
+    /* Top: day + clock */
+    .top {
+      font-size: 20px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      margin-bottom: 1%;
+      line-height: 1.15;
+      flex-shrink: 0;
+    }
+    .top .day { color: #ddd; font-weight: 700; font-size: 22px; }
+    .top .clock { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 700; }
+
+    /* Big lesson number */
+    .lesson {
+      font-size: clamp(64px, 36vw, 96px);
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 0.88;
+      margin-bottom: 0;
+    }
+
+    /* Time range */
+    .time {
+      font-size: clamp(20px, 8.5vw, 30px);
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 2%;
+      font-weight: 600;
+    }
+
+    /* Room – most important glance info */
+    .room {
+      font-size: clamp(48px, 24vw, 72px);
+      font-weight: 900;
+      background: rgba(59,130,246,0.3);
+      border: 3px solid rgba(59,130,246,0.7);
+      border-radius: 18px;
+      padding: 6px 12px;
+      display: inline-block;
+      max-width: 98%;
+      letter-spacing: 0;
+      margin-bottom: 2%;
+      word-break: break-word;
+    }
+
+    /* Subject + status */
+    .subject {
+      font-size: clamp(22px, 9vw, 32px);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 1%;
+      max-width: 98%;
+      line-height: 1.05;
+    }
+    .code {
+      font-size: 15px;
+      color: #999;
+      margin-bottom: 2%;
+      font-weight: 600;
+    }
+    .status {
+      font-size: 18px;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: 24px;
+      display: inline-block;
+    }
+    .status.teaching { background: rgba(34,197,94,0.4); color: #4ade80; }
+    .status.duty     { background: rgba(245,158,11,0.4); color: #fbbf24; }
+    .status.free     { background: rgba(100,116,139,0.45); color: #bbc; }
+    .status.outside  { background: rgba(100,116,139,0.35); color: #aaa; }
+
+    /* Bottom nav – huge touch targets */
+    .nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 3%;
+      width: 100%;
+      max-width: 320px;
+      flex-shrink: 0;
+    }
+    button {
+      flex: 1;
+      background: #1c1c1c;
+      border: 3px solid #555;
+      color: #fff;
+      min-height: 68px;
+      border-radius: 34px;
+      font-size: 40px;
+      font-weight: 900;
+      cursor: pointer;
+      touch-action: manipulation;
+      line-height: 1;
+    }
+    button:active { background: #333; }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      flex: 1.25;
+      font-size: 36px;
+    }
+    button.primary:active { background: #2563eb; }
+
+    /* Watch-sized screens */
+    @media (max-width: 360px) {
+      body { padding: 1% 2%; }
+      .top .day { font-size: 20px; }
+      .top .clock { font-size: 22px; }
+      .lesson { font-size: clamp(56px, 34vw, 88px); }
+      .time { font-size: clamp(18px, 8vw, 28px); }
+      .room { font-size: clamp(42px, 22vw, 66px); padding: 5px 10px; }
+      .subject { font-size: clamp(20px, 8.5vw, 30px); }
+      .code { font-size: 14px; }
+      .status { font-size: 17px; }
+      .nav { max-width: 300px; gap: 10px; }
+      button { min-height: 62px; font-size: 36px; border-radius: 31px; }
+      button.primary { font-size: 34px; }
+    }
+
+    @media (max-height: 320px) {
+      .code { display: none; }
+      .nav { margin-top: 2%; }
+      button { min-height: 54px; font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <span class="day" id="dayLabel">—</span><br>
+    <span class="clock" id="clock">--:--</span>
+  </div>
+
+  <div class="lesson" id="lessonNum">—</div>
+  <div class="time" id="lessonTime">—</div>
+  <div class="room" id="room">—</div>
+  <div class="subject" id="subject">—</div>
+  <div class="code" id="code"></div>
+  <div class="status" id="status">—</div>
+
+  <div class="nav">
+    <button id="prevBtn">‹</button>
+    <button class="primary" id="nowBtn">●</button>
+    <button id="nextBtn">›</button>
+  </div>
+
+  <script>
+    const PERIODS = [
+      { id: 'MOV1', name: 'Morning Movement', short: 'Move', start: 8*60+24, end: 8*60+26 },
+      { id: 'PC',   name: 'Pastoral Care', short: 'PC', start: 8*60+26, end: 8*60+40 },
+      { id: 'L1',   name: 'Lesson 1', short: 'L1', start: 8*60+40, end: 9*60+20 },
+      { id: 'L2',   name: 'Lesson 2', short: 'L2', start: 9*60+20, end: 10*60+0 },
+      { id: 'L3',   name: 'Lesson 3', short: 'L3', start: 10*60+0, end: 10*60+40 },
+      { id: 'REC',  name: 'Recess', short: 'Recess', start: 10*60+40, end: 10*60+58 },
+      { id: 'MOV2', name: 'Recess Movement', short: 'Move', start: 10*60+58, end: 11*60+0 },
+      { id: 'L4',   name: 'Lesson 4', short: 'L4', start: 11*60+0, end: 11*60+40 },
+      { id: 'L5',   name: 'Lesson 5', short: 'L5', start: 11*60+40, end: 12*60+20 },
+      { id: 'L6',   name: 'Lesson 6', short: 'L6', start: 12*60+20, end: 13*60+0 },
+      { id: 'LN1',  name: 'Lunch 1', short: 'Lun1', start: 13*60+0, end: 13*60+20 },
+      { id: 'LN2',  name: 'Lunch 2', short: 'Lun2', start: 13*60+20, end: 13*60+38 },
+      { id: 'MOV3', name: 'Lunch Movement', short: 'Move', start: 13*60+38, end: 13*60+40 },
+      { id: 'L7',   name: 'Lesson 7', short: 'L7', start: 13*60+40, end: 14*60+20 },
+      { id: 'L8',   name: 'Lesson 8', short: 'L8', start: 14*60+20, end: 15*60+0 }
+    ];
+
+    const SCHEDULE = {
+      0: { // Mon
+        PC:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        L1:  { room: 'E001S', subject: 'Mathematics', code: '7MATHB', type: 'class' },
+        L2:  { room: 'E001S', subject: 'Mathematics', code: '7MATHB', type: 'class' },
+        L3:  { room: 'T104S', subject: 'STEM', code: '7STEM4', type: 'class' },
+        L4:  { room: 'T104S', subject: 'STEM', code: '7STEM4', type: 'class' },
+        L5:  { room: 'P117S', subject: 'Study', code: 'STUDY', type: 'class' },
+        L6:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        LN1: { room: 'JC Court', subject: 'Duty L1', code: 'DUTY', type: 'duty' },
+        LN2: { room: '—', subject: 'Free', code: '', type: 'free' },
+        L7:  { room: 'T104S', subject: 'Digital Tech', code: '8DIGY', type: 'class' },
+        L8:  { room: 'T104S', subject: 'Digital Tech', code: '8DIGY', type: 'class' }
+      },
+      1: { // Tue
+        PC:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        L1:  { room: 'S007S', subject: 'STEM', code: '7STEM5', type: 'class' },
+        L2:  { room: 'S007S', subject: 'STEM', code: '7STEM5', type: 'class' },
+        L3:  { room: 'T104S', subject: 'Digital Tech', code: '9DIG2', type: 'class' },
+        L4:  { room: 'T104S', subject: 'Digital Tech', code: '9DIG2', type: 'class' },
+        L5:  { room: 'T101S', subject: 'STEM', code: '8STEM2', type: 'class' },
+        L6:  { room: 'T101S', subject: 'STEM', code: '8STEM2', type: 'class' },
+        LN1: { room: 'Amphi/Grass', subject: 'Duty L1', code: 'DUTY', type: 'duty' },
+        LN2: { room: '—', subject: 'Free', code: '', type: 'free' },
+        L7:  { room: 'T104S', subject: 'Digital Tech', code: '10DIT1', type: 'class' },
+        L8:  { room: 'T104S', subject: 'Digital Tech', code: '10DIT1', type: 'class' }
+      },
+      2: { // Wed
+        PC:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        L1:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        L2:  { room: 'T104S', subject: 'Digital Tech', code: '8DIGR', type: 'class' },
+        L3:  { room: 'T104S', subject: 'Digital Tech', code: '8DIGR', type: 'class' },
+        L4:  { room: 'S007S', subject: 'Digital Tech', code: '9DIG2', type: 'class' },
+        L5:  { room: 'T101S', subject: 'STEM', code: '8STEM2', type: 'class' },
+        L6:  { room: 'T101S', subject: 'STEM', code: '8STEM2', type: 'class' },
+        LN1: { room: '—', subject: 'Free', code: '', type: 'free' },
+        LN2: { room: '—', subject: 'Free', code: '', type: 'free' },
+        L7:  { room: 'T104S', subject: 'Digital Tech', code: '10DIT1', type: 'class' },
+        L8:  { room: 'T104S', subject: 'Digital Tech', code: '10DIT1', type: 'class' }
+      },
+      3: { // Thu
+        PC:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        L1:  { room: 'T101S', subject: 'STEM', code: '8STEM7', type: 'class' },
+        L2:  { room: 'T101S', subject: 'STEM', code: '8STEM7', type: 'class' },
+        L3:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        L4:  { room: 'E001S', subject: 'Mathematics', code: '7MATHB', type: 'class' },
+        L5:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        L6:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        LN1: { room: '—', subject: 'Free', code: '', type: 'free' },
+        LN2: { room: '—', subject: 'Free', code: '', type: 'free' },
+        L7:  { room: 'S007S', subject: 'STEM', code: '8STEM5', type: 'class' },
+        L8:  { room: 'S007S', subject: 'STEM', code: '8STEM5', type: 'class' }
+      },
+      4: { // Fri
+        PC:  { room: 'S104S', subject: 'Pastoral Care', code: '11PC3', type: 'class' },
+        L1:  { room: 'T101S', subject: 'STEM', code: '8STEM7', type: 'class' },
+        L2:  { room: 'T101S', subject: 'STEM', code: '8STEM7', type: 'class' },
+        L3:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        L4:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        L5:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        L6:  { room: '—', subject: 'Free', code: '', type: 'free' },
+        LN1: { room: '—', subject: 'Free', code: '', type: 'free' },
+        LN2: { room: 'Amphi/Grass', subject: 'Duty L2', code: 'DUTY', type: 'duty' },
+        L7:  { room: 'E001S', subject: 'Mathematics', code: '7MATHB', type: 'class' },
+        L8:  { room: 'E001S', subject: 'Mathematics', code: '7MATHB', type: 'class' }
+      }
+    };
+
+    const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    let override = null;
+    const TZ = 'Australia/Adelaide';
+
+    function getAdelaideParts(date = new Date()) {
+      const fmt = new Intl.DateTimeFormat('en-AU', {
+        timeZone: TZ,
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false, weekday: 'short'
+      });
+      const parts = Object.fromEntries(fmt.formatToParts(date).map(p => [p.type, p.value]));
+      return {
+        hour: +parts.hour, minute: +parts.minute, second: +parts.second,
+        weekday: parts.weekday
+      };
+    }
+
+    function minutesNow() {
+      const p = getAdelaideParts();
+      return p.hour * 60 + p.minute + p.second / 60;
+    }
+
+    function getDayIndex() {
+      const map = { Mon:0, Tue:1, Wed:2, Thu:3, Fri:4, Sat:-1, Sun:-1 };
+      return map[getAdelaideParts().weekday] ?? -1;
+    }
+
+    function formatTime(mins) {
+      const h = Math.floor(mins / 60);
+      const m = Math.floor(mins % 60);
+      const ampm = h >= 12 ? 'p' : 'a';
+      const h12 = h % 12 || 12;
+      return `${h12}:${m.toString().padStart(2,'0')}${ampm}`;
+    }
+
+    function findCurrentPeriodIdx(mins) {
+      for (let i = 0; i < PERIODS.length; i++) {
+        if (mins >= PERIODS[i].start && mins < PERIODS[i].end) return i;
+      }
+      return -1;
+    }
+
+    function getDisplayData() {
+      let dayIdx, periodIdx, isLive = true;
+      if (override) {
+        dayIdx = override.dayIdx;
+        periodIdx = override.periodIdx;
+        isLive = false;
+      } else {
+        dayIdx = getDayIndex();
+        periodIdx = findCurrentPeriodIdx(minutesNow());
+      }
+
+      if (dayIdx < 0) {
+        return { dayLabel: 'Weekend', lessonNum: '—', lessonTime: 'Closed', room: '—', subject: 'No lessons', code: '', status: 'outside', statusText: 'Weekend', isLive };
+      }
+
+      if (periodIdx < 0) {
+        const mins = isLive ? minutesNow() : 0;
+        let msg = mins < PERIODS[0].start ? 'Before school' : 'Day finished';
+        return { dayLabel: DAY_NAMES[dayIdx] + (isLive ? '' : ' •'), lessonNum: '—', lessonTime: msg, room: '—', subject: '—', code: '', status: 'outside', statusText: msg, isLive };
+      }
+
+      const period = PERIODS[periodIdx];
+      const entry = (SCHEDULE[dayIdx] || {})[period.id] || { room: '—', subject: 'Free', code: '', type: 'free' };
+
+      let subject = entry.subject, room = entry.room, type = entry.type, code = entry.code;
+      if (period.id === 'REC') { subject = 'Recess'; room = '—'; type = 'free'; code = ''; }
+      else if (period.id.startsWith('MOV')) { subject = 'Movement'; room = '—'; type = 'free'; code = ''; }
+
+      return {
+        dayLabel: DAY_NAMES[dayIdx] + (isLive ? '' : ' •'),
+        lessonNum: period.short,
+        lessonTime: `${formatTime(period.start)}–${formatTime(period.end)}`,
+        room, subject, code,
+        status: type === 'class' ? 'teaching' : type === 'duty' ? 'duty' : 'free',
+        statusText: type === 'class' ? 'Teaching' : type === 'duty' ? 'Duty' : (period.id.startsWith('MOV') ? 'Move' : 'Free'),
+        isLive
+      };
+    }
+
+    function render() {
+      const d = getDisplayData();
+      document.getElementById('dayLabel').textContent = d.dayLabel;
+      document.getElementById('lessonNum').textContent = d.lessonNum;
+      document.getElementById('lessonTime').textContent = d.lessonTime;
+      document.getElementById('room').textContent = d.room;
+      document.getElementById('subject').textContent = d.subject;
+      document.getElementById('code').textContent = d.code || '';
+      const s = document.getElementById('status');
+      s.textContent = d.statusText;
+      s.className = 'status ' + d.status;
+
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-AU', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: true }) +
+        (d.isLive ? '' : ' •');
+    }
+
+    function step(delta) {
+      let dayIdx = override ? override.dayIdx : getDayIndex();
+      let periodIdx = override ? override.periodIdx : findCurrentPeriodIdx(minutesNow());
+      if (dayIdx < 0) dayIdx = 0;
+      if (periodIdx < 0) periodIdx = delta > 0 ? 0 : PERIODS.length - 1;
+
+      periodIdx += delta;
+      if (periodIdx >= PERIODS.length) { periodIdx = 0; dayIdx = (dayIdx + 1) % 5; }
+      else if (periodIdx < 0) { periodIdx = PERIODS.length - 1; dayIdx = (dayIdx + 4) % 5; }
+      override = { dayIdx, periodIdx };
+      render();
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => step(-1));
+    document.getElementById('nextBtn').addEventListener('click', () => step(1));
+    document.getElementById('nowBtn').addEventListener('click', () => { override = null; render(); });
+
+    // Touch-friendly without zoom
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('touchend', e => { e.preventDefault(); btn.click(); }, { passive: false });
+    });
+
+    render();
+    setInterval(render, 1000);
+  </script>
+</body>
+</html>
