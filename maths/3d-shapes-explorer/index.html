@@ -7,9 +7,9 @@
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c0f16;--card:#2a1620;--ink:#fbe9f1;--mute:#c9a0b4;--acc:#f06a9f;--line:#4a2636;--stage:#241119;--stroke:#ff9cc4;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#1c0f16;--card:#2a1620;--ink:#fbe9f1;--mute:#c9a0b4;--acc:#f06a9f;--line:#4a2636;--stage:#241119;--stroke:#ff9cc4;color-scheme:dark}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px;min-height:100%}
 h1{margin:0 0 2px;font-size:1.6rem}
 .sub{margin:0 0 12px;color:var(--mute)}
 .wrap{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:12px;align-items:start}
@@ -20,7 +20,7 @@ h1{margin:0 0 2px;font-size:1.6rem}
 .card canvas{width:100%;height:84px;display:block}
 .card.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
 .card:focus-visible{outline:2px solid var(--acc)}
-#cv{width:100%;height:min(62vh,520px);min-height:300px;display:block;background:var(--stage);border-radius:10px;border:1px solid var(--line);touch-action:none;cursor:grab}
+#cv{width:100%;height:min(62vh,520px);min-height:280px;display:block;background:var(--stage);border-radius:10px;border:1px solid var(--line);touch-action:none;cursor:grab}
 #cv:active{cursor:grabbing}
 .hint{color:var(--mute);font-size:.8rem;margin:6px 2px}
 .row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px}
@@ -37,6 +37,20 @@ table{width:100%;border-collapse:collapse;font-size:.88rem}
 td{padding:5px 0;border-top:1px solid var(--line);vertical-align:top}
 td:first-child{color:var(--mute);width:38%;padding-right:6px}
 .eu{margin-top:8px;padding:8px;border-radius:8px;background:var(--bg);font-size:.85rem}
+
+/* ===== Embed / iframe mode (Formative etc.) ===== */
+html.embedded,html.embedded body{height:100%;overflow:auto}
+html.embedded body{padding:8px}
+html.embedded h1{font-size:1.25rem;margin-bottom:0}
+html.embedded .sub{font-size:.85rem;margin-bottom:8px}
+html.embedded .wrap{gap:8px}
+html.embedded .panel{padding:8px;border-radius:10px}
+html.embedded #cv{height:min(48vh,420px);min-height:240px}
+html.embedded .card canvas{height:72px}
+html.embedded .card{font-size:.72rem}
+@media (max-width:900px){
+  html.embedded .wrap{grid-template-columns:1fr}
+}
 </style></head><body>
 <h1>3D Shapes Explorer</h1>
 <p class="sub">Select a shape, then drag to rotate it. Use the sliders and views to explore faces, edges and vertices.</p>
@@ -64,6 +78,11 @@ td:first-child{color:var(--mute);width:38%;padding-right:6px}
  <aside class="panel" id="info"></aside>
 </div>
 <script>
+// Detect iframe / embed mode (Formative, etc.)
+if (window.self !== window.top || new URLSearchParams(location.search).has('embed')) {
+  document.documentElement.classList.add('embedded');
+}
+
 const P=Math.PI,$=s=>document.querySelector(s);
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
