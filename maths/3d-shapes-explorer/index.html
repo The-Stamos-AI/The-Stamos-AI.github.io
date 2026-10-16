@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3D Shapes Explorer</title>
+<style>
+:root{--bg:#fff7fa;--card:#fff;--ink:#3a1428;--mute:#7a5568;--acc:#b0245f;--line:#f0c8d8;--stage:#fffdfe;--stroke:#a8205a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c0f16;--card:#2a1620;--ink:#fbe9f1;--mute:#c9a0b4;--acc:#f06a9f;--line:#4a2636;--stage:#241119;--stroke:#ff9cc4;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1c0f16;--card:#2a1620;--ink:#fbe9f1;--mute:#c9a0b4;--acc:#f06a9f;--line:#4a2636;--stage:#241119;--stroke:#ff9cc4;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px}
+h1{margin:0 0 2px;font-size:1.6rem}
+.sub{margin:0 0 12px;color:var(--mute)}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:12px;align-items:start}
+@media(max-width:1000px){.wrap{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+#list{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.card{border:2px solid var(--line);background:var(--stage);border-radius:10px;padding:4px;cursor:pointer;text-align:center;color:var(--ink);font:inherit;font-size:.78rem;line-height:1.2}
+.card canvas{width:100%;height:84px;display:block}
+.card.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+.card:focus-visible{outline:2px solid var(--acc)}
+#cv{width:100%;height:min(62vh,520px);min-height:300px;display:block;background:var(--stage);border-radius:10px;border:1px solid var(--line);touch-action:none;cursor:grab}
+#cv:active{cursor:grabbing}
+.hint{color:var(--mute);font-size:.8rem;margin:6px 2px}
+.row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px}
+.sl{display:grid;grid-template-columns:70px 1fr 48px;gap:6px;align-items:center;margin-top:6px}
+.sl input{width:100%;accent-color:var(--acc)}
+.sl span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+button.b{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+button.b:hover{border-color:var(--acc)}
+label.t{display:flex;gap:6px;align-items:center;cursor:pointer}
+label.t input{accent-color:var(--acc)}
+h2{font-size:1.15rem;margin:0}
+.tag{display:inline-block;background:var(--acc);color:#fff;border-radius:99px;padding:1px 9px;font-size:.75rem;margin:4px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+td{padding:5px 0;border-top:1px solid var(--line);vertical-align:top}
+td:first-child{color:var(--mute);width:38%;padding-right:6px}
+.eu{margin-top:8px;padding:8px;border-radius:8px;background:var(--bg);font-size:.85rem}
+</style></head><body>
+<h1>3D Shapes Explorer</h1>
+<p class="sub">Select a shape, then drag to rotate it. Use the sliders and views to explore faces, edges and vertices.</p>
+<div class="wrap">
+ <aside class="panel"><div id="list" role="listbox" aria-label="Shapes"></div></aside>
+ <main class="panel">
+  <canvas id="cv" tabindex="0" aria-label="Rotatable 3D shape"></canvas>
+  <div class="hint">Drag to rotate · scroll or +/− to zoom · arrow keys rotate</div>
+  <div class="sl"><span>Rotate X</span><input type="range" id="sx" min="-180" max="180" value="0"><span id="vx">0°</span></div>
+  <div class="sl"><span>Rotate Y</span><input type="range" id="sy" min="-180" max="180" value="0"><span id="vy">0°</span></div>
+  <div class="sl"><span>Rotate Z</span><input type="range" id="sz" min="-180" max="180" value="0"><span id="vz">0°</span></div>
+  <div class="row">
+   <span>Views:</span>
+   <button class="b" data-v="iso">Isometric</button><button class="b" data-v="front">Front</button><button class="b" data-v="top">Top</button><button class="b" data-v="side">Side</button><button class="b" id="reset">Reset</button>
+  </div>
+  <div class="row">
+   <label class="t"><input type="checkbox" id="auto" checked> Auto-spin</label>
+   <label class="t"><input type="checkbox" id="see" checked> See-through</label>
+   <label class="t"><input type="checkbox" id="hid" checked> Hidden edges</label>
+   <label class="t"><input type="checkbox" id="wire"> Wireframe</label>
+   <label class="t"><input type="checkbox" id="dots"> Vertices</label>
+   <label class="t">Colour <input type="color" id="col" value="#e8789f"></label>
+  </div>
+ </main>
+ <aside class="panel" id="info"></aside>
+</div>
+<script>
+const P=Math.PI,$=s=>document.querySelector(s);
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const ring=(n,r,y,off,sx,sz)=>Array.from({length:n},(_,i)=>{const a=off+i/n*2*P;return[r*sx*Math.cos(a),y,r*sz*Math.sin(a)]});
+function build(v,f,g){
+ const c=[0,1,2].map(k=>v.reduce((s,p)=>s+p[k],0)/v.length);
+ f=f.map(fa=>{const n=cross(sub(v[fa[1]],v[fa[0]]),sub(v[fa[2]],v[fa[1]]));
+  const m=[0,1,2].map(k=>fa.reduce((s,i)=>s+v[i][k],0)/fa.length-c[k]);
+  return dot(n,m)<0?fa.slice().reverse():fa});
+ const E=new Map();
+ f.forEach((fa,fi)=>fa.forEach((a,i)=>{const b=fa[(i+1)%fa.length],k=Math.min(a,b)+'-'+Math.max(a,b);
+  if(!E.has(k))E.set(k,{a:Math.min(a,b),b:Math.max(a,b),f:[]});E.get(k).f.push(fi)}));
+ return{v,f,g:g||f.map((_,i)=>i),e:[...E.values()],R:Math.max(...v.map(p=>Math.hypot(...p)))};
+}
+function prism(n,r,h,o={}){const{sx=1,sz=1,off=0,smooth=false}=o;
+ const v=[...ring(n,r,-h/2,off,sx,sz),...ring(n,r,h/2,off,sx,sz)],f=[],g=[],ks=[...Array(n).keys()];
+ for(let i=0;i<n;i++){const j=(i+1)%n;f.push([i,j,n+j,n+i]);g.push(smooth?-1:i)}
+ f.push(ks);g.push(100);f.push(ks.map(i=>n+i));g.push(101);return build(v,f,g)}
+function pyramid(n,r,h,off=0){const v=[...ring(n,r,-h/2,off,1,1),[0,h/2,0]],f=[];
+ for(let i=0;i<n;i++)f.push([i,(i+1)%n,n]);f.push([...Array(n).keys()]);return build(v,f)}
+const tv=[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(p=>p.map(x=>x*.95));
+const SH=[
+ {n:'Square pyramid',k:'Pyramid',m:pyramid(4,1.4,2.2,P/4),fc:'1 square base + 4 triangles',base:'Square',vol:'V = ⅓ × s² × h',sa:'SA = s² + 2 × s × l  (l = slant height)'},
+ {n:'Triangular prism',k:'Prism',m:prism(3,1.1,2.6,{off:-P/2}),fc:'2 triangles + 3 rectangles',base:'Triangle (cross-section)',vol:'V = (½ × b × h) × L',sa:'SA = 2 × (½ × b × h) + perimeter × L'},
+ {n:'Rectangular prism (cuboid)',k:'Prism',m:prism(4,1.2,1.5,{sx:1.6,sz:.8,off:P/4}),fc:'6 rectangles (opposite faces equal)',base:'Rectangle',vol:'V = l × w × h',sa:'SA = 2(lw + lh + wh)'},
+ {n:'Cube',k:'Prism / Platonic solid',m:prism(4,1.2,1.697,{off:P/4}),fc:'6 identical squares',base:'Square',vol:'V = s³',sa:'SA = 6s²'},
+ {n:'Cylinder',k:'Curved solid',m:prism(48,1,2.2,{smooth:true}),fc:'2 flat circles + 1 curved surface',base:'Circle',V:0,E:2,F:3,vol:'V = π r² h',sa:'SA = 2π r² + 2π r h'},
+ {n:'Sphere',k:'Curved solid',sphere:true,m:{R:1.6},fc:'1 curved surface',base:'None',V:0,E:0,F:1,vol:'V = 4⁄3 π r³',sa:'SA = 4π r²'},
+ {n:'Tetrahedron (triangular pyramid)',k:'Pyramid / Platonic solid',m:build(tv,[[0,1,2],[0,1,3],[0,2,3],[1,2,3]]),fc:'4 equilateral triangles',base:'Triangle (any face)',vol:'V = a³ ÷ (6√2)  (regular)',sa:'SA = √3 × a²'},
+ {n:'Hexagonal prism',k:'Prism',m:prism(6,1.1,2.1),fc:'2 hexagons + 6 rectangles',base:'Hexagon',vol:'V = (3√3⁄2) a² × h',sa:'SA = 3√3 a² + 6 a h'},
+ {n:'Pentagonal prism',k:'Prism',m:prism(5,1.15,2,{off:-P/2}),fc:'2 pentagons + 5 rectangles',base:'Pentagon',vol:'V = A(base) × h  ,  A ≈ 1.72 a²',sa:'SA = 2A + 5 a h'},
+ {n:'Triangular pyramid',k:'Pyramid',m:pyramid(3,1.25,2.5,-P/2),fc:'1 triangular base + 3 triangles',base:'Triangle',vol:'V = ⅓ × A(base) × h',sa:'SA = A(base) + 3 side triangles'},
+ {n:'Octagonal prism',k:'Prism',m:prism(8,1.1,2.1,{off:P/8}),fc:'2 octagons + 8 rectangles',base:'Octagon',vol:'V = 2(1+√2) a² × h',sa:'SA = 4(1+√2) a² + 8 a h'}
+];
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function rot3(p,[a,b,c]){let[x,y,z]=p;
+ const x1=x*Math.cos(c)-y*Math.sin(c),y1=x*Math.sin(c)+y*Math.cos(c);
+ const x2=x1*Math.cos(b)+z*Math.sin(b),z2=-x1*Math.sin(b)+z*Math.cos(b);
+ return[x2,y1*Math.cos(a)-z2*Math.sin(a),y1*Math.sin(a)+z2*Math.cos(a)]}
+const L=(()=>{const l=[-.4,.6,.7],m=Math.hypot(...l);return l.map(x=>x/m)})();
+function draw(ctx,W,H,sh,rot,o,zoom=1){
+ ctx.clearRect(0,0,W,H);
+ const st=getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim()||'#a8205a';
+ const s=Math.min(W,H)*.4/sh.m.R*zoom,cx=W/2,cy=H/2,lw=Math.max(1.4,Math.min(W,H)/190),[r,g,b]=hex(o.color);
+ ctx.lineJoin=ctx.lineCap='round';ctx.lineWidth=lw;ctx.strokeStyle=st;
+ const dash=()=>ctx.setLineDash([lw*3.2,lw*3]);
+ if(sh.sphere){
+  const R=sh.m.R*s;
+  if(!o.wire){const gr=ctx.createRadialGradient(cx-R*.35,cy-R*.4,R*.08,cx,cy,R),a=o.see?.7:1;
+   gr.addColorStop(0,`rgba(${(r+255)>>1},${(g+255)>>1},${(b+255)>>1},${a})`);gr.addColorStop(1,`rgba(${r*.8|0},${g*.8|0},${b*.8|0},${a})`);
+   ctx.fillStyle=gr;ctx.beginPath();ctx.arc(cx,cy,R,0,2*P);ctx.fill()}
+  ctx.beginPath();ctx.arc(cx,cy,R,0,2*P);ctx.stroke();
+  const guides=[t=>[Math.cos(t),0,Math.sin(t)],t=>[Math.cos(t),Math.sin(t),0],t=>[0,Math.sin(t),Math.cos(t)]],N=90;
+  guides.forEach(f=>{for(let i=0;i<N;i++){
+   const p=rot3(f(i/N*2*P),rot),q=rot3(f((i+1)/N*2*P),rot),vis=(p[2]+q[2])>0;
+   if(!vis&&!o.hid&&!o.wire)continue;
+   ctx.save();ctx.globalAlpha=vis?1:.55;if(!vis)dash();ctx.beginPath();
+   ctx.moveTo(cx+p[0]*R,cy-p[1]*R);ctx.lineTo(cx+q[0]*R,cy-q[1]*R);ctx.stroke();ctx.restore()}});
+  return}
+ const m=sh.m,rv=m.v.map(p=>rot3(p,rot)),sc=rv.map(p=>[cx+p[0]*s,cy-p[1]*s]);
+ const fi=m.f.map((fa,i)=>{const n=cross(sub(rv[fa[1]],rv[fa[0]]),sub(rv[fa[2]],rv[fa[1]])),l=Math.hypot(...n)||1;
+  const nn=n.map(x=>x/l);return{fa,n:nn,front:nn[2]>0,z:fa.reduce((t,k)=>t+rv[k][2],0)/fa.length}});
+ if(!o.wire)fi.filter(f=>o.see||f.front).sort((a,b)=>a.z-b.z).forEach(f=>{
+  const d=Math.abs(dot(f.n,L)),sh2=.55+.45*d,a=o.see?(f.front?.55:.3):1;
+  ctx.fillStyle=`rgba(${r*sh2|0},${g*sh2|0},${b*sh2|0},${a})`;ctx.beginPath();
+  f.fa.forEach((k,i)=>i?ctx.lineTo(...sc[k]):ctx.moveTo(...sc[k]));ctx.closePath();ctx.fill()});
+ const hid=[],vis=[];
+ m.e.forEach(e=>{const fr=e.f.filter(k=>fi[k].front).length;
+  if(e.f.length==2&&m.g[e.f[0]]===-1&&m.g[e.f[1]]===-1){if(fr===1)vis.push(e);return}
+  (fr>0?vis:hid).push(e)});
+ const seg=l=>{ctx.beginPath();l.forEach(e=>{ctx.moveTo(...sc[e.a]);ctx.lineTo(...sc[e.b])});ctx.stroke()};
+ if(o.hid||o.wire){ctx.save();ctx.globalAlpha=.6;dash();seg(hid);ctx.restore()}
+ seg(vis);
+ if(o.dots&&!m.f.some(f=>f.length>6)){
+  const fv=new Set();fi.forEach(f=>{if(f.front)f.fa.forEach(k=>fv.add(k))});
+  sc.forEach((p,k)=>{ctx.beginPath();ctx.arc(p[0],p[1],lw*2.6,0,2*P);ctx.fillStyle=fv.has(k)?st:'transparent';ctx.fill();ctx.stroke()})}
+}
+const IS=[-.55,.75,0],V={iso:IS,front:[0,0,0],top:[P/2,0,0],side:[0,P/2,0]};
+const S={i:0,rot:IS.slice(),zoom:1,drag:false,o:{see:true,hid:true,wire:false,dots:false,color:'#e8789f'}};
+const cv=$('#cv'),ctx=cv.getContext('2d');
+function fit(c){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.round(r.width*d),h=Math.round(r.height*d);
+ if(c.width!==w||c.height!==h){c.width=w;c.height=h}return[w,h]}
+const list=$('#list');
+SH.forEach((s,i)=>{const b=document.createElement('button');b.className='card';b.setAttribute('role','option');
+ b.innerHTML=`<canvas></canvas>${s.n}`;b.onclick=()=>select(i);list.appendChild(b)});
+function thumbs(){[...list.children].forEach((b,i)=>{const c=b.firstChild,[w,h]=fit(c);draw(c.getContext('2d'),w,h,SH[i],[-.5,.6,0],{...S.o,see:true,hid:true,dots:false,wire:false},1.15)})}
+function select(i){S.i=i;[...list.children].forEach((b,k)=>{b.classList.toggle('on',k===i);b.setAttribute('aria-selected',k===i)});info()}
+function info(){const s=SH[S.i],m=s.m;let V_,E_,F_;
+ if(s.sphere||s.V!==undefined){V_=s.V;E_=s.E;F_=s.F}else{V_=m.v.length;E_=m.e.length;F_=m.f.length}
+ const poly=!(s.sphere||s.V!==undefined);
+ $('#info').innerHTML=`<h2>${s.n}</h2><span class="tag">${s.k}</span><table>
+ <tr><td>Faces</td><td><b>${F_}</b>${poly?'':' (incl. curved)'}</td></tr>
+ <tr><td>Edges</td><td><b>${E_}</b>${poly?'':' (curved)'}</td></tr>
+ <tr><td>Vertices</td><td><b>${V_}</b></td></tr>
+ <tr><td>Face types</td><td>${s.fc}</td></tr>
+ <tr><td>Base / cross-section</td><td>${s.base}</td></tr>
+ <tr><td>Volume</td><td>${s.vol}</td></tr>
+ <tr><td>Surface area</td><td>${s.sa}</td></tr></table>
+ <div class="eu">${poly?`<b>Euler's formula:</b> V − E + F = ${V_} − ${E_} + ${F_} = <b>${V_-E_+F_}</b> ✓ (always 2 for convex polyhedra)`:`<b>Not a polyhedron:</b> it has curved surfaces, so Euler's formula (V − E + F = 2) does not apply.`}</div>`}
+const sl={x:$('#sx'),y:$('#sy'),z:$('#sz')},vl={x:$('#vx'),y:$('#vy'),z:$('#vz')};
+const norm=a=>{a=(a+P)%(2*P);if(a<0)a+=2*P;return a-P};
+function sync(){['x','y','z'].forEach((k,i)=>{const d=Math.round(norm(S.rot[i])*180/P);vl[k].textContent=d+'°';if(document.activeElement!==sl[k])sl[k].value=d})}
+['x','y','z'].forEach((k,i)=>sl[k].oninput=()=>{S.rot[i]=sl[k].value*P/180;$('#auto').checked=false});
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{S.rot=V[b.dataset.v].slice();$('#auto').checked=false});
+$('#reset').onclick=()=>{S.rot=IS.slice();S.zoom=1};
+[['see','see'],['hid','hid'],['wire','wire'],['dots','dots']].forEach(([id,k])=>{$('#'+id).onchange=e=>{S.o[k]=e.target.checked};S.o[k]=$('#'+id).checked});
+$('#col').oninput=e=>{S.o.color=e.target.value;thumbs()};
+let lx,ly;
+cv.onpointerdown=e=>{S.drag=true;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId);$('#auto').checked=false};
+cv.onpointermove=e=>{if(!S.drag)return;S.rot[1]+=(e.clientX-lx)*.01;S.rot[0]+=(e.clientY-ly)*.01;lx=e.clientX;ly=e.clientY};
+cv.onpointerup=cv.onpointercancel=()=>S.drag=false;
+cv.addEventListener('wheel',e=>{e.preventDefault();S.zoom=Math.min(3,Math.max(.4,S.zoom*(e.deltaY<0?1.08:.92)))},{passive:false});
+cv.onkeydown=e=>{const k=e.key,d=.1;
+ if(k=='ArrowLeft')S.rot[1]-=d;else if(k=='ArrowRight')S.rot[1]+=d;else if(k=='ArrowUp')S.rot[0]-=d;else if(k=='ArrowDown')S.rot[0]+=d;
+ else if(k=='+'||k=='=')S.zoom=Math.min(3,S.zoom*1.1);else if(k=='-')S.zoom=Math.max(.4,S.zoom/1.1);else return;
+ e.preventDefault();$('#auto').checked=false};
+function frame(){if($('#auto').checked&&!S.drag)S.rot[1]+=.008;
+ const[w,h]=fit(cv);draw(ctx,w,h,SH[S.i],S.rot,S.o,S.zoom);sync();requestAnimationFrame(frame)}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(thumbs,50));
+addEventListener('resize',thumbs);
+select(0);thumbs();frame();
+</script></body></html>
